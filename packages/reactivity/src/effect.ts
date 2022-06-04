@@ -12,13 +12,15 @@ export class ReactiveEffect {
   parent = null
   deps = [] // effect 中用了哪些属性，后续清理的时候要使用 
   fn = null
-  constructor(fn) {
+  scheduler = null
+  constructor(fn, scheduler) {
     this.fn = fn
+    this.scheduler = scheduler
   }
 
   run() {
     if(!this.active) {
-      return this.run()
+      return this.fn()
     }else {
       try{
         this.parent = activeEffect
@@ -32,13 +34,18 @@ export class ReactiveEffect {
     }
     
   }
+  stop() {
+    if(this.active) {
+      this.active = false
+      cleanEffect(this)
+    }
+  }
 }
 
 
 // {object: {key1: [effect1,effect2], key2: [effect1,effect2 ]}}
 const targetMap = new WeakMap()
 export function track(target, key) {
-  // console.log(target, key, activeEffect)
   if(activeEffect) {
     // 依赖收集
     let depsMap = targetMap.get(target)
@@ -54,12 +61,10 @@ export function track(target, key) {
     let shouldTrack = !deps.has(activeEffect)
     if(shouldTrack) {
       deps.add(activeEffect)
-      console.log(deps,111)
       activeEffect.deps.push(deps) // 放的是 set
     }
   }
 
-  // console.log(activeEffect,targetMap)
 }
 
 export function trigger(target, key, value) {
@@ -70,22 +75,36 @@ export function trigger(target, key, value) {
 
   let effects = depsMap.get(key)
   // debugger
-  if(!effects) {
-    return
+  if(effects) {
+    effects = new Set(effects)
+    effects.forEach(_effect => {
+      if(_effect !== activeEffect) { // 保证要执行的 effect 不是当前的 effect
+        if(_effect.scheduler) {
+          _effect.scheduler()
+        }else {
+          _effect.run() // 重新执行 effect
+        }
+      }
+    })
   }
-  effects.forEach(_effect => {
-    if(_effect !== activeEffect) { // 保证要执行的 effect 不是当前的 effect
-      _effect.run() // 重新执行 effect
-    }
-  })
 }
 
-export function effect(fn) {
+export function effect(fn, options = {}) {
+   
   // 将函数 fn 变成响应式的effect
-  const _effect = new ReactiveEffect(fn)
+  const _effect = new ReactiveEffect(fn, options.scheduler)
   _effect.run()
+  const runner = _effect.run.bind(_effect)
+  runner.effect = _effect
+  return runner
 }
 
 function cleanEffect(effect) {
   // 需要清理effect中存入属性set中的 effect
+  // 每次执行前都需要将 effect 中对应属性的set集合清理掉 
+  let deps = effect.deps
+  for(let i = 0; i < deps.length; i++) {
+    deps[i].delete(effect)
+  }
+  effect.deps.length = 0
 }
