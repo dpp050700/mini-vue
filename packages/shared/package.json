@@ -1,0 +1,8 @@
+{
+  "name": "@simple-vue3/shared",
+  "version": "1.0.0",
+  "description": "",
+  "main": "dist/index.js",
+  "module": "dist/shared-esm-bundler.js",
+  "buildOptions": {}
+}

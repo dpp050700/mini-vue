@@ -1,0 +1,18 @@
+{
+  "compilerOptions": {
+    "outDir": "dist", // 输出目录
+    "sourceMap": true,
+    "target": "es2016", // 目标语法                        /* Set the JavaScript language version for emitted JavaScript and include compatible library declarations. */
+    "module": "esnext",  //模块格式                            /* Specify what module code is generated. */
+    "moduleResolution": "node", // 模块解析方式
+    "strict": false,                                      /* Enable all strict type-checking options. */
+    "resolveJsonModule": true, // 解析 json 模块
+    "esModuleInterop": true, // 允许 es6 语法引入 commonjs 模块
+    "jsx": "preserve", // jsx 不转译
+    "lib": ["esnext", "dom"], // 支持的类库 esnext 和 dom
+    "baseUrl": ".",
+    "paths": {
+      "@simple-vue3/*": ["packages/*/src"]
+    }
+  }
+}
