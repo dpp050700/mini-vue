@@ -13,7 +13,7 @@ export class ReactiveEffect {
   deps = [] // effect 中用了哪些属性，后续清理的时候要使用 
   fn = null
   scheduler = null
-  constructor(fn, scheduler) {
+  constructor(fn, scheduler?) {
     this.fn = fn
     this.scheduler = scheduler
   }
@@ -58,13 +58,16 @@ export function track(target, key) {
       deps = new Set()
       depsMap.set(key, deps)
     }
-    let shouldTrack = !deps.has(activeEffect)
-    if(shouldTrack) {
-      deps.add(activeEffect)
-      activeEffect.deps.push(deps) // 放的是 set
-    }
+    trackEffect(deps)
   }
+}
 
+export function trackEffect(deps) {
+  let shouldTrack = !deps.has(activeEffect)
+  if(shouldTrack) {
+    deps.add(activeEffect)
+    activeEffect.deps.push(deps) // 放的是 set
+  }
 }
 
 export function trigger(target, key, value) {
@@ -75,6 +78,11 @@ export function trigger(target, key, value) {
 
   let effects = depsMap.get(key)
   // debugger
+  triggerEffect(effects)
+  
+}
+
+export function triggerEffect(effects) {
   if(effects) {
     effects = new Set(effects)
     effects.forEach(_effect => {
@@ -89,7 +97,7 @@ export function trigger(target, key, value) {
   }
 }
 
-export function effect(fn, options = {}) {
+export function effect(fn, options = {} as any) {
    
   // 将函数 fn 变成响应式的effect
   const _effect = new ReactiveEffect(fn, options.scheduler)
