@@ -27,7 +27,7 @@ const outputFormat = format.startsWith("global")
 
 const outputFile = path.resolve(
   __dirname,
-  `../packages/${target}/dist/${target}.${format}.index.js`
+  `../packages/${target}/dist/${target}.${format}.js`
 );
 
 const { build } = require("esbuild");

@@ -1,0 +1,14 @@
+{
+  "name": "@simple-vue3/runtime-dom",
+  "version": "1.0.0",
+  "description": "",
+  "main": "dist/runtime-do.cjs.js",
+  "unpkg":"dist/runtime-dom.global.js",
+  "module": "dist/runtime-dom-esm-bundler.js",
+  "buildOptions": {
+    "name": "VueRuntimeDOM"
+  },
+  "dependencies": {
+    "@simple-vue3/shared": "workspace:^1.0.0"
+  }
+}
