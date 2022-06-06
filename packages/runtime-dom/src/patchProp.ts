@@ -4,8 +4,6 @@ import { patchStyle } from './modules/style'
 // 样式 style
 // 事件
 // 其他
-
-
 export const patchProp = (el, key, prevValue, nextValue) => {
   if(key === 'class') {
     patchClass(el, nextValue)
