@@ -32,8 +32,6 @@ const outputFile = path.resolve(
 
 const { build } = require("esbuild");
 
-console.log(pkg.buildOptions.name);
-
 build({
   entryPoints: [entry],
   outfile: outputFile,

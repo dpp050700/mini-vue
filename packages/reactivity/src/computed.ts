@@ -23,6 +23,7 @@ class ComputedRefImpl {
   getter = null 
   effect = null
   deps = null 
+  private __v_isRef = true
   constructor(getter, setter) {
     this.getter = getter
     this.setter = setter
