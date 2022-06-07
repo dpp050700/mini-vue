@@ -10,3 +10,11 @@ export const isFunction = (value) => {
 export const isArray = (value) => {
   return Array.isArray(value)
 }
+
+export const isString = (value) => {
+  return typeof value === 'string'
+}
+
+export const isNumber = (value) => {
+  return typeof value === 'number'
+}
