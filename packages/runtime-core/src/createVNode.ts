@@ -1,5 +1,7 @@
 import { isString, isArray } from "@simple-vue3/shared"
 
+export const Text = Symbol('Text')
+
 export function isVNode(value) {
   return !!value.__v_isVNode
 }

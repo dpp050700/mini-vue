@@ -5,7 +5,7 @@ export const nodeOps = {
   createTextNode(text) {
     return document.createTextNode(text)
   },
-  insert(element, container,anchor = null) {
+  insert(element, container, anchor = null) {
     container.insertBefore(element,anchor)
   },
   remove(element) {
@@ -24,9 +24,9 @@ export const nodeOps = {
     return element.nextSibling
   },
   setText(element, text) { // 给文本节点设置内容
-    element.nodeValue(text)
+    element.nodeValue = text;
   },
   setElementText(element, text) { // 给元素设置内容
-    element.textContext(text)
+    element.textContent = text;
   }
 }
