@@ -1,6 +1,7 @@
 import { isString, isArray } from "@simple-vue3/shared"
 
 export const Text = Symbol('Text')
+export const Fragment = Symbol('Fragment')
 
 export function isVNode(value) {
   return value && !!value.__v_isVNode
