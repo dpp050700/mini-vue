@@ -1,6 +1,13 @@
 import { reactive } from "@simple-vue3/reactivity"
 import { isFunction, hasOwn, isObject } from "@simple-vue3/shared"
 import { proxyRefs } from '@simple-vue3/reactivity'
+import { ShapeFlags } from "./createVNode"
+
+export let instance = null
+
+export const getCurrentInstance = () => instance
+
+export const setCurrentInstance = (i) => instance = i
 
 export function createComponentInstance(vnode) {
   let instance = {
@@ -13,9 +20,11 @@ export function createComponentInstance(vnode) {
     propsOptions: vnode.type.props || {},
     props: {}, // 用户接收的属性
     attrs: {}, // 未接收的属性
+    slots: {}, // 存放组件所有插槽
 
     proxy: null, //代理对象
-    setupState: {}
+    setupState: {},
+    exposed: {} // 暴露的方法属性
   }
 
   return instance
@@ -40,9 +49,16 @@ function initProps(instance, rawProps) {
   instance.attrs = attrs
 }
 
+function initSlots(instance, children) {
+  if(instance.vnode.shapeFlag & ShapeFlags.SLOTS_CHILDREN) {
+    instance.slots = children
+  }
+}
+
 
 const publicProperties = {
-  $attrs: (instance) => instance.attrs
+  $attrs: (instance) => instance.attrs,
+  $slots:(instance) => instance.slots,
 }
 
 const instanceProxy = {
@@ -87,6 +103,7 @@ export function setupComponent(instance) {
   let {data, render, setup} = type
 
   initProps(instance, props)
+  initSlots(instance, children)
 
   instance.proxy = new Proxy(instance, instanceProxy)
 
@@ -104,9 +121,16 @@ export function setupComponent(instance) {
         let invoker = instance.vnode.props[name]
         invoker && invoker(...args)
       },
-      attrs: instance.attrs
+      attrs: instance.attrs,
+      slots: instance.slots,
+      expose: (exposed) => {
+        instance.exposed = exposed || {}
+      }
     }
+
+    setCurrentInstance(instance)
     const setupResult = setup(instance.props, context)
+    setCurrentInstance(null)
 
     if(isFunction(setupResult)) {
       instance.render = setupResult

@@ -27,7 +27,10 @@ export function createVNode(type, props = null, children = null) {
     let temp = 0
     if(isArray(children)) {
       temp = ShapeFlags.ARRAY_CHILDREN
-    } else {
+    } else if(isObject(children)) {
+      temp = ShapeFlags.SLOTS_CHILDREN
+    }
+    else {
       children = String(children)
       temp = ShapeFlags.TEXT_CHILDREN
     }
