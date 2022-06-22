@@ -1,4 +1,4 @@
-import { isString, isArray } from "@simple-vue3/shared"
+import { isString, isArray, isObject } from "@simple-vue3/shared"
 
 export const Text = Symbol('Text')
 export const Fragment = Symbol('Fragment')
@@ -12,7 +12,7 @@ export function isSameVNode(v1, v2) {
 }
 
 export function createVNode(type, props = null, children = null) {
-  const shapeFlag = isString(type) ? ShapeFlags.ELEMENT : 0
+  const shapeFlag = isString(type) ? ShapeFlags.ELEMENT : isObject(type) ? ShapeFlags.STATEFUL_COMPONENT : 0
   const vnode = {
     type,
     props,
@@ -23,7 +23,7 @@ export function createVNode(type, props = null, children = null) {
     __v_isVNode: true
   }
 
-  if(children) {
+  if(children !== undefined) {
     let temp = 0
     if(isArray(children)) {
       temp = ShapeFlags.ARRAY_CHILDREN

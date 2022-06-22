@@ -2,6 +2,9 @@ import { ShapeFlags } from "./createVNode"
 import { isString, isNumber } from '@simple-vue3/shared'
 import { createVNode, Text, Fragment, isSameVNode  } from './createVNode'
 import getSequence from './sequence'
+import { createComponentInstance, setupComponent } from './component'
+import { ReactiveEffect } from "@simple-vue3/reactivity"
+import { queueJob } from "./scheduler"
 
 export function createRenderer(options) {
 
@@ -268,6 +271,101 @@ export function createRenderer(options) {
     }
   }
 
+
+  function updateComponentPreRender(instance, next) {
+    instance.next = null
+    instance.vnode = next
+    updateProps(instance, instance.props, next.props)
+  }
+
+  function setupRenderEffect(instance, container,anchor) {
+    const componentUpdate = () => {
+      // render 函数中的 this 可以取到 data、attrs、props
+      if(!instance.isMounted) {
+        const subTree = instance.render.call(instance.proxy)
+        patch(null, subTree, container, anchor)
+        instance.subTree = subTree
+        instance.isMounted = true
+      } else {
+        const next = instance.next
+        if(next) {
+          updateComponentPreRender(instance, next)
+        }
+        
+        const subTree = instance.render.call(instance.proxy)
+        patch(instance.subTree, subTree, container, anchor)
+        instance.subTree = subTree
+        // debugger
+      }
+    }
+
+    let effect = new ReactiveEffect(componentUpdate, () => queueJob(instance.update))
+
+    let update = instance.update = effect.run.bind(effect)
+    update()
+
+  }
+
+  function mountComponent(vNode, container, anchor) {
+    const instance = vNode.component = createComponentInstance(vNode)
+
+    setupComponent(instance)
+
+    setupRenderEffect(instance, container,anchor)
+  }
+
+  function hasChanged(prevProps, nextProps) {
+    for(let key in nextProps) {
+      if(nextProps[key] !== prevProps[key]) {
+        return true
+      }
+    }
+    return false
+  }
+
+  function updateProps(instance, prevProps, nextProps) {
+    for(let key in nextProps) {
+      instance.props[key] = nextProps[key]
+    }
+    for(let key in instance.props) {
+      if(!(key in nextProps)) {
+        delete instance.props[key]
+      }
+    }
+  }
+
+  function shouldComponentUpdate(prevVNode, nextVNode) {
+    const prevProps = prevVNode.props
+    const nextProps = nextVNode.props
+    return hasChanged(prevProps, nextProps)
+  }
+
+  function updateComponent(prevVNode, nextVNode) {
+    // 对比之前、之后的 prop 属性，看一下是否有变化
+    const instance = nextVNode.component = prevVNode.component
+
+    // // resolvePropValue 只处理 props 属性 ，其余的不关心
+    // const prevProps = prevVNode.props
+    // const nextProps = nextVNode.props
+
+    // updateProps(instance, prevProps, nextProps)
+    if(shouldComponentUpdate(prevVNode, nextVNode)) {
+      instance.next = nextVNode
+      instance.update()
+    } else {
+      instance.vnode = nextVNode
+    }
+  }
+
+  function processComponent(prevVNode, nextVNode, container, anchor = null) {
+    if(prevVNode === null) {
+      mountComponent(nextVNode,container,anchor)
+    } else {
+      // 组件更新
+      updateComponent(prevVNode, nextVNode)
+    }
+  }
+
   function unmount(n1) {
     if(n1.type === Fragment) {
       unmountChildren(n1.children)
@@ -297,6 +395,8 @@ export function createRenderer(options) {
       default:
         if(shapeFlag & ShapeFlags.ELEMENT) {
           processElement(prevVNode, nextVNode, container, anchor)
+        } else if(shapeFlag & ShapeFlags.STATEFUL_COMPONENT) {
+          processComponent(prevVNode, nextVNode, container, anchor)
         }
         break;
     }

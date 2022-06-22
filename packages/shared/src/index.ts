@@ -18,3 +18,5 @@ export const isString = (value) => {
 export const isNumber = (value) => {
   return typeof value === 'number'
 }
+
+export const hasOwn = (obj, key) => Object.prototype.hasOwnProperty.call(obj, key)
