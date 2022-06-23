@@ -1,5 +1,5 @@
 import { ShapeFlags } from "./createVNode"
-import { isString, isNumber } from '@simple-vue3/shared'
+import { isString, isNumber, invokerFn } from '@simple-vue3/shared'
 import { createVNode, Text, Fragment, isSameVNode  } from './createVNode'
 import getSequence from './sequence'
 import { createComponentInstance, setupComponent } from './component'
@@ -254,7 +254,7 @@ export function createRenderer(options) {
     }
   }
 
-  function processFragment(prevVNode, nextVNode, container) {
+  function processFragment(prevVNode, nextVNode, container, parent) {
     if(prevVNode === null) {
       mountChildren(nextVNode.children, container)
     } else {
@@ -262,7 +262,7 @@ export function createRenderer(options) {
     }
   }
 
-  function processElement(prevVNode, nextVNode, container, anchor = null) {
+  function processElement(prevVNode, nextVNode, container, anchor = null, parent) {
     if(prevVNode === null) {
       // 挂载元素
       mountElement(nextVNode, container, anchor)
@@ -281,11 +281,19 @@ export function createRenderer(options) {
   function setupRenderEffect(instance, container,anchor) {
     const componentUpdate = () => {
       // render 函数中的 this 可以取到 data、attrs、props
+
+      const {bm, m, u} = instance
       if(!instance.isMounted) {
+        if(bm) {
+          invokerFn(bm)
+        }
         const subTree = instance.render.call(instance.proxy)
         patch(null, subTree, container, anchor)
         instance.subTree = subTree
         instance.isMounted = true
+        if(m) {
+          invokerFn(m)
+        }
       } else {
         const next = instance.next
         if(next) {
@@ -295,6 +303,9 @@ export function createRenderer(options) {
         const subTree = instance.render.call(instance.proxy)
         patch(instance.subTree, subTree, container, anchor)
         instance.subTree = subTree
+        if(u) {
+          invokerFn(u)
+        }
         // debugger
       }
     }
@@ -357,7 +368,7 @@ export function createRenderer(options) {
     }
   }
 
-  function processComponent(prevVNode, nextVNode, container, anchor = null) {
+  function processComponent(prevVNode, nextVNode, container, anchor = null, parent) {
     if(prevVNode === null) {
       mountComponent(nextVNode,container,anchor)
     } else {
@@ -374,7 +385,7 @@ export function createRenderer(options) {
     }
   }
 
-  function patch(prevVNode, nextVNode, container, anchor = null) {
+  function patch(prevVNode, nextVNode, container, anchor = null, parent = null) {
     // prevVNode 为 null 说明是初次渲染
     // prevVNode 有值说明为更新， 走 diff 算法
 
@@ -390,13 +401,13 @@ export function createRenderer(options) {
         processText(prevVNode, nextVNode, container)
         break;
       case Fragment:
-        processFragment(prevVNode, nextVNode, container) 
+        processFragment(prevVNode, nextVNode, container, parent) 
         break
       default:
         if(shapeFlag & ShapeFlags.ELEMENT) {
-          processElement(prevVNode, nextVNode, container, anchor)
+          processElement(prevVNode, nextVNode, container, anchor, parent)
         } else if(shapeFlag & ShapeFlags.STATEFUL_COMPONENT) {
-          processComponent(prevVNode, nextVNode, container, anchor)
+          processComponent(prevVNode, nextVNode, container, anchor, parent)
         }
         break;
     }

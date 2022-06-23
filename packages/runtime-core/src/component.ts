@@ -2,6 +2,7 @@ import { reactive } from "@simple-vue3/reactivity"
 import { isFunction, hasOwn, isObject } from "@simple-vue3/shared"
 import { proxyRefs } from '@simple-vue3/reactivity'
 import { ShapeFlags } from "./createVNode"
+import {onBeforeMount, onMounted, onUpdated} from './apiLifeCycle'
 
 export let instance = null
 
@@ -24,7 +25,8 @@ export function createComponentInstance(vnode) {
 
     proxy: null, //代理对象
     setupState: {},
-    exposed: {} // 暴露的方法属性
+    exposed: {}, // 暴露的方法属性
+    
   }
 
   return instance
@@ -55,6 +57,15 @@ function initSlots(instance, children) {
   }
 }
 
+function initLifeCycle(instance, {beforeMount, mounted, updated}) {
+  // const {} = currentInstance
+  // console.log(11112)
+  setCurrentInstance(instance)
+  beforeMount && onBeforeMount(beforeMount)
+  mounted && onMounted(mounted)
+  updated && onUpdated(updated)
+  setCurrentInstance(null)
+} 
 
 const publicProperties = {
   $attrs: (instance) => instance.attrs,
@@ -98,12 +109,14 @@ const instanceProxy = {
   }
 }
 
+
 export function setupComponent(instance) {
   const {type, props, children} = instance.vnode
-  let {data, render, setup} = type
+  let {data, render, setup, beforeMount, mounted, updated} = type
 
   initProps(instance, props)
   initSlots(instance, children)
+  initLifeCycle(instance, {beforeMount, mounted, updated})
 
   instance.proxy = new Proxy(instance, instanceProxy)
 
