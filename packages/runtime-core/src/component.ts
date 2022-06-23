@@ -10,7 +10,7 @@ export const getCurrentInstance = () => instance
 
 export const setCurrentInstance = (i) => instance = i
 
-export function createComponentInstance(vnode) {
+export function createComponentInstance(vnode, parent) {
   let instance = {
     data: null,
     vnode: vnode,
@@ -26,7 +26,8 @@ export function createComponentInstance(vnode) {
     proxy: null, //代理对象
     setupState: {},
     exposed: {}, // 暴露的方法属性
-    
+    parent: parent,
+    provides: parent ? parent.provides : Object.create(null)
   }
 
   return instance

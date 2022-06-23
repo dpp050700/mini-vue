@@ -33,11 +33,11 @@ export function createRenderer(options) {
     return children[i];
   }
 
-  function mountChildren(children, container) {
+  function mountChildren(children, container, parent) {
     for(let i = 0; i < children.length; i++) {
       let child = normalize(children, i)
       // child 可能是文本节点， 对文本节点做处理
-      patch(null, child, container)
+      patch(null, child, container, null, parent)
     }
   }
 
@@ -58,7 +58,7 @@ export function createRenderer(options) {
     }
   }
 
-  function mountElement(vnode, container, anchor = null) {
+  function mountElement(vnode, container, anchor = null, parent) {
     let {type, props, children, shapeFlag} = vnode
     // 后续需要比对虚拟节点的差异，所以需要保留对应的真实节点
     let el = hostCreateElement(type)
@@ -73,9 +73,8 @@ export function createRenderer(options) {
     }
 
     if(shapeFlag & ShapeFlags.ARRAY_CHILDREN) {
-      mountChildren(children, el)
+      mountChildren(children, el, parent)
     }
-
     hostInsert(el, container, anchor)
   }
 
@@ -186,7 +185,7 @@ export function createRenderer(options) {
     }
   }
 
-  function patchChildren(prevVNode, nextVNode, container) {
+  function patchChildren(prevVNode, nextVNode, container, parent) {
     let prevChildren = prevVNode.children
     let nextChildren = nextVNode.children
     let prevShapeFlag = prevVNode.shapeFlag
@@ -221,7 +220,7 @@ export function createRenderer(options) {
           hostSetElementText(container, null)
         }
         // 挂载
-        mountChildren(nextChildren, container)
+        mountChildren(nextChildren, container, parent)
       }
     } else {
       if(prevShapeFlag & ShapeFlags.TEXT_CHILDREN) {
@@ -234,11 +233,11 @@ export function createRenderer(options) {
     }
   }
 
-  function patchElement(prevVNode, nextVNode) {
+  function patchElement(prevVNode, nextVNode, parent) {
     const el = prevVNode.el
     nextVNode.el = el
     patchProps(prevVNode.props, nextVNode.props, el)
-    patchChildren(prevVNode, nextVNode, el)
+    patchChildren(prevVNode, nextVNode, el, parent)
   }
 
   function processText(prevVNode, nextVNode, container) {
@@ -256,7 +255,7 @@ export function createRenderer(options) {
 
   function processFragment(prevVNode, nextVNode, container, parent) {
     if(prevVNode === null) {
-      mountChildren(nextVNode.children, container)
+      mountChildren(nextVNode.children, container, parent)
     } else {
       patchKeyedChildren(prevVNode.children, nextVNode.children, container )
     }
@@ -265,9 +264,9 @@ export function createRenderer(options) {
   function processElement(prevVNode, nextVNode, container, anchor = null, parent) {
     if(prevVNode === null) {
       // 挂载元素
-      mountElement(nextVNode, container, anchor)
+      mountElement(nextVNode, container, anchor, parent)
     } else {
-      patchElement(prevVNode, nextVNode)
+      patchElement(prevVNode, nextVNode, parent)
     }
   }
 
@@ -288,7 +287,7 @@ export function createRenderer(options) {
           invokerFn(bm)
         }
         const subTree = instance.render.call(instance.proxy)
-        patch(null, subTree, container, anchor)
+        patch(null, subTree, container, anchor, instance)
         instance.subTree = subTree
         instance.isMounted = true
         if(m) {
@@ -301,7 +300,7 @@ export function createRenderer(options) {
         }
         
         const subTree = instance.render.call(instance.proxy)
-        patch(instance.subTree, subTree, container, anchor)
+        patch(instance.subTree, subTree, container, anchor, instance)
         instance.subTree = subTree
         if(u) {
           invokerFn(u)
@@ -317,8 +316,8 @@ export function createRenderer(options) {
 
   }
 
-  function mountComponent(vNode, container, anchor) {
-    const instance = vNode.component = createComponentInstance(vNode)
+  function mountComponent(vNode, container, anchor, parent) {
+    const instance = vNode.component = createComponentInstance(vNode, parent)
 
     setupComponent(instance)
 
@@ -370,7 +369,7 @@ export function createRenderer(options) {
 
   function processComponent(prevVNode, nextVNode, container, anchor = null, parent) {
     if(prevVNode === null) {
-      mountComponent(nextVNode,container,anchor)
+      mountComponent(nextVNode,container,anchor, parent)
     } else {
       // 组件更新
       updateComponent(prevVNode, nextVNode)
@@ -411,10 +410,6 @@ export function createRenderer(options) {
         }
         break;
     }
-    // if(prevVNode === null) {
-    //   // 挂载元素
-    //   mountElement(nextVNode, container)
-    // }
 
   }
 
