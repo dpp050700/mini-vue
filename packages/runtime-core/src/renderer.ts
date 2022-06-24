@@ -377,11 +377,13 @@ export function createRenderer(options) {
   }
 
   function unmount(n1) {
+    let {shapeFlag} = n1
     if(n1.type === Fragment) {
-      unmountChildren(n1.children)
-    } else {
-       hostRemove(n1.el)
-    }
+      return unmountChildren(n1.children)
+    } else if(shapeFlag & ShapeFlags.COMPONENT) {
+      return unmount(n1.component.subTree) // 组件要卸载的是 subTree
+    } 
+    hostRemove(n1.el)
   }
 
   function patch(prevVNode, nextVNode, container, anchor = null, parent = null) {

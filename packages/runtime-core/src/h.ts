@@ -1,7 +1,7 @@
 import { isVNode, createVNode } from "./createVNode"
 import { isObject, isArray } from "@simple-vue3/shared"
 
-export function h(type, propsOrChildren, children) {
+export function h(type, propsOrChildren?, children?) {
   const l = arguments.length
   if( l === 2) {
     if(isObject(propsOrChildren) && !isArray(propsOrChildren)) {
@@ -18,6 +18,6 @@ export function h(type, propsOrChildren, children) {
     }else if(l === 3 && isVNode(children)) {
       children = [children]
     }
-    return createVNode(type, propsOrChildren, children)
+    return createVNode(type, propsOrChildren, children || [])
   }
 }
