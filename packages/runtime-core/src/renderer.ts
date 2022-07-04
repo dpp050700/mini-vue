@@ -62,6 +62,7 @@ export function createRenderer(options) {
     let {type, props, children, shapeFlag} = vnode
     // 后续需要比对虚拟节点的差异，所以需要保留对应的真实节点
     let el = hostCreateElement(type)
+
     vnode.el = el
 
     if(props) {
@@ -78,9 +79,9 @@ export function createRenderer(options) {
     hostInsert(el, container, anchor)
   }
 
-  function unmountChildren(children) {
+  function unmountChildren(children, parent) {
     children.forEach(child => {
-      unmount(child)
+      unmount(child, parent)
     })
   }
 
@@ -126,7 +127,7 @@ export function createRenderer(options) {
     }else if(i > nextEnd) { // 老的多新的少
       if(i <= prevEnd) {
         while(i <= prevEnd) {
-          unmount(prev[i])
+          unmount(prev[i], null)
           i++
         }
       }
@@ -147,7 +148,7 @@ export function createRenderer(options) {
         const oldVNode = prev[i]
         const newIndex = keyToNewIndexMap.get(oldVNode.key) //用老的去找， 看看新的里面有没有
         if(newIndex === undefined) {
-          unmount(oldVNode)
+          unmount(oldVNode, null)
         } else {
           // 新节点和老的节点都存在
           patch(oldVNode, next[newIndex], container) // 比较两个节点的差异
@@ -206,7 +207,7 @@ export function createRenderer(options) {
     if(nextShapeFlag & ShapeFlags.TEXT_CHILDREN) {
 
       if(prevShapeFlag & ShapeFlags.ARRAY_CHILDREN) {
-        unmountChildren(prevChildren)
+        unmountChildren(prevChildren, parent)
       }
       hostSetElementText(container, nextChildren)
 
@@ -227,7 +228,7 @@ export function createRenderer(options) {
         // 清空文本
         hostSetElementText(container, null)
       }else if(prevShapeFlag & ShapeFlags.ARRAY_CHILDREN) {
-        unmountChildren(prevChildren)
+        unmountChildren(prevChildren, parent)
       }
       
     }
@@ -275,6 +276,7 @@ export function createRenderer(options) {
     instance.next = null
     instance.vnode = next
     updateProps(instance, instance.props, next.props)
+    Object.assign(instance.slots, next.children)
   }
 
   function setupRenderEffect(instance, container,anchor) {
@@ -319,6 +321,14 @@ export function createRenderer(options) {
   function mountComponent(vNode, container, anchor, parent) {
     const instance = vNode.component = createComponentInstance(vNode, parent)
 
+    instance.ctx.render = {
+      createElement: hostCreateElement,
+      move(vnode, container) {
+        hostInsert(vnode.component.subTree.el, container)
+      },
+      unmount
+    }
+
     setupComponent(instance)
 
     setupRenderEffect(instance, container,anchor)
@@ -347,7 +357,13 @@ export function createRenderer(options) {
   function shouldComponentUpdate(prevVNode, nextVNode) {
     const prevProps = prevVNode.props
     const nextProps = nextVNode.props
-    return hasChanged(prevProps, nextProps)
+    if(hasChanged(prevProps, nextProps)) {
+      return true
+    }
+    if(prevVNode.children || nextVNode.children) {
+      return true
+    }
+    return false
   }
 
   function updateComponent(prevVNode, nextVNode) {
@@ -369,19 +385,28 @@ export function createRenderer(options) {
 
   function processComponent(prevVNode, nextVNode, container, anchor = null, parent) {
     if(prevVNode === null) {
-      mountComponent(nextVNode,container,anchor, parent)
+      if(nextVNode.shapeFlag & ShapeFlags.COMPONENT_KEEP_ALIVE) {
+        parent.ctx.active(nextVNode, container, anchor)
+      } else {
+        mountComponent(nextVNode,container,anchor, parent)
+      }
     } else {
       // 组件更新
       updateComponent(prevVNode, nextVNode)
     }
   }
 
-  function unmount(n1) {
-    let {shapeFlag} = n1
+  function unmount(n1, parent) {
+    let {shapeFlag, component} = n1
+
+    if(shapeFlag & ShapeFlags.COMPONENT_SHOULD_KEEP_ALIVE) {
+      parent.ctx.deactivate(n1)
+    }
+
     if(n1.type === Fragment) {
-      return unmountChildren(n1.children)
+      return unmountChildren(n1.children, parent)
     } else if(shapeFlag & ShapeFlags.COMPONENT) {
-      return unmount(n1.component.subTree) // 组件要卸载的是 subTree
+      return unmount(n1.component.subTree, parent) // 组件要卸载的是 subTree
     } 
     hostRemove(n1.el)
   }
@@ -392,7 +417,7 @@ export function createRenderer(options) {
 
     // 判断 type 和 key 是否一样
     if(prevVNode && !isSameVNode(prevVNode, nextVNode)) {
-      unmount(prevVNode)
+      unmount(prevVNode, parent)
       prevVNode = null
     }
     
@@ -419,7 +444,7 @@ export function createRenderer(options) {
     if(vnode === null) {
       // 卸载
       if(container._vnode) {
-        unmount(container._vnode)
+        unmount(container._vnode, null)
       }
     }else {
       patch(container._vnode || null, vnode, container)
