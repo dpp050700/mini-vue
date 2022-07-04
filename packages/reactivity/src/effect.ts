@@ -1,3 +1,4 @@
+import { recordEffectScope } from "./effectScope"
 
 export let activeEffect = undefined
 
@@ -16,6 +17,8 @@ export class ReactiveEffect {
   constructor(fn, scheduler?) {
     this.fn = fn
     this.scheduler = scheduler
+
+    recordEffectScope(this)
   }
 
   run() {
