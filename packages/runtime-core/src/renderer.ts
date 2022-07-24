@@ -154,7 +154,6 @@ export function createRenderer(options) {
           patch(oldVNode, next[newIndex], container) // 比较两个节点的差异
           sequence[newIndex - s2] = i + 1
         }
-        // keyToNewIndexMap.set(next[i].key, i)
       }
       
       let increase = getSequence(sequence)
